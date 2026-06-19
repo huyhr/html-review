@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi" data-theme="dark" data-font="lg">
 
 <head>
@@ -3717,6 +3717,340 @@
       /* Disable hover preview on touch */
       .hover-preview { display: none !important; }
     }
+
+    /* ════════════════════════════════════════════════════════════════
+       AI CHATBOT FLOATING BUTTON + PANEL
+       ════════════════════════════════════════════════════════════════ */
+
+    /* Floating button */
+    #aiBtnFloat {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1e6ef5 0%, #06b6d4 100%);
+      border: none;
+      cursor: pointer;
+      z-index: 1000;
+      color: white;
+      box-shadow: 0 4px 12px rgba(30, 110, 245, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    #aiBtnFloat:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 16px rgba(30, 110, 245, 0.5);
+    }
+
+    #aiBtnFloat svg {
+      width: 28px;
+      height: 28px;
+      fill: none;
+      stroke: white;
+    }
+
+    /* Chat panel container */
+    #aiChatPanel {
+      position: fixed;
+      right: 20px;
+      bottom: 80px;
+      width: 380px;
+      height: 520px;
+      background: var(--bg-1);
+      border-radius: 12px;
+      border: 1px solid var(--border-0);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      z-index: 1001;
+      transform: translateY(calc(100% + 20px));
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    #aiChatPanel.open {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Chat panel header */
+    .ai-header {
+      background: var(--bg-2);
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-0);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 600;
+      color: var(--text-0);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .ai-header span {
+      flex: 1;
+      padding-left: 4px;
+    }
+
+    .ai-header button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      padding: 4px 6px;
+      color: var(--text-2);
+      transition: color 0.2s ease;
+      border-radius: var(--r-sm);
+    }
+
+    .ai-header button:hover {
+      color: var(--text-0);
+      background: var(--bg-3);
+    }
+
+    /* Messages container */
+    .ai-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      background: var(--bg-0);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Message bubble base */
+    .ai-msg {
+      word-wrap: break-word;
+      max-width: 88%;
+      padding: 9px 13px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.45;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* User bubble */
+    .ai-msg-user {
+      align-self: flex-end;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 12px 4px 12px 12px;
+    }
+
+    /* Bot bubble */
+    .ai-msg-bot {
+      align-self: flex-start;
+      background: var(--bg-2);
+      color: var(--text-0);
+      border: 1px solid var(--border-0);
+      border-radius: 4px 12px 12px 12px;
+    }
+
+    /* Thinking indicator */
+    .ai-msg-bot.ai-thinking {
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .ai-thinking span {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--blue);
+      margin: 0 2px;
+      animation: bounce 1.4s infinite;
+    }
+
+    .ai-thinking span:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    .ai-thinking span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .ai-thinking span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes bounce {
+      0%, 60%, 100% {
+        transform: translateY(0);
+      }
+      30% {
+        transform: translateY(-8px);
+      }
+    }
+
+    /* Markdown table inside bot bubble */
+    .ai-msg-bot .ai-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+      margin: 6px 0;
+      overflow-x: auto;
+      display: block;
+    }
+    .ai-msg-bot .ai-table th,
+    .ai-msg-bot .ai-table td {
+      border: 1px solid var(--border-0);
+      padding: 4px 8px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .ai-msg-bot .ai-table thead th {
+      background: var(--bg-3);
+      font-weight: 600;
+      color: var(--text-1);
+    }
+    .ai-msg-bot .ai-table tbody tr:nth-child(odd) {
+      background: var(--bg-2);
+    }
+    .ai-msg-bot .ai-table tbody tr:nth-child(even) {
+      background: var(--bg-1);
+    }
+
+    /* Input area */
+    .ai-input-area {
+      padding: 10px 12px;
+      background: var(--bg-1);
+      border-top: 1px solid var(--border-0);
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    #aiInput {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--border-1);
+      border-radius: 8px;
+      background: var(--bg-0);
+      color: var(--text-0);
+      font-family: var(--font);
+      font-size: 13px;
+      resize: none;
+      max-height: 80px;
+      min-height: 36px;
+      line-height: 1.4;
+      transition: border-color 0.2s ease;
+    }
+
+    #aiInput::placeholder { color: var(--text-3); }
+
+    #aiInput:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(30, 110, 245, 0.15);
+    }
+
+    #aiSendBtn {
+      background: var(--blue);
+      border: none;
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease, transform 0.2s ease;
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    #aiSendBtn:hover { background: var(--blue-d); transform: scale(1.05); }
+    #aiSendBtn:active { transform: scale(0.95); }
+    #aiSendBtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    #aiSendBtn svg {
+      width: 18px;
+      height: 18px;
+      fill: white;
+    }
+
+    /* Empty state */
+    .ai-empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--text-2);
+      font-size: 0.8rem;
+      gap: 8px;
+      padding: 20px;
+    }
+
+    .ai-empty-state svg {
+      width: 36px;
+      height: 36px;
+      stroke: var(--text-3);
+    }
+
+    /* Scrollbar styling for messages */
+    .ai-messages::-webkit-scrollbar { width: 4px; }
+    .ai-messages::-webkit-scrollbar-track { background: transparent; }
+    .ai-messages::-webkit-scrollbar-thumb { background: var(--border-1); border-radius: 2px; }
+    .ai-messages::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+    /* Mobile responsive */
+    @media (max-width: 767px) {
+      #aiBtnFloat {
+        right: 16px;
+        bottom: 72px;
+        width: 48px;
+        height: 48px;
+      }
+
+      #aiBtnFloat svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      #aiChatPanel {
+        left: 0;
+        right: 0;
+        bottom: 56px;
+        width: 100%;
+        height: 70vh;
+        border-radius: 16px 16px 0 0;
+      }
+
+      .ai-msg {
+        max-width: 85%;
+      }
+
+      #aiInput {
+        font-size: 14px;
+        min-height: 40px;
+      }
+
+      #aiSendBtn {
+        width: 40px;
+        height: 40px;
+      }
+    }
+
   </style>
 </head>
 
@@ -4154,6 +4488,9 @@
     CFG.CREATE_TASK_URL = 'https://default2f13a9ab1d6e4447be4b16be5756bd.c2.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/dd666cce4df24e8dba2bc8a2dc127d7a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=FVcuG6g_mqsQ28CfoKyloxEvBW5PCCb7tBYcBYoYS3Y';   // ★ PASTE URL flow "CreateTask" tại đây
     CFG.DRAFT_URL = 'https://default2f13a9ab1d6e4447be4b16be5756bd.c2.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/4a605345788f402cb171ce76dabd52d2/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=46UumJI0YSXUUCo0wGOGM15zdb0I6cBidsTcB770rf0';   // ★ PASTE URL flow "TaskDrafts" tại đây (optional — fallback localStorage)
     CFG.UPDATE_TASK_URL = 'https://default2f13a9ab1d6e4447be4b16be5756bd.c2.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/8c24088217f246c2b3708f74d65bb9e1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=q5uEdZSNYjQcveKVmJxjLVfuowePIdwqxsPMFJle3VA';  // ★ PASTE URL flow "UpdateTaskStatus" tại đây (optional — nếu để trống, trạng thái chỉ cập nhật local cho đến lần Sync kế tiếp)
+    CFG.AI_API_KEY  = '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';  // ← paste OpenRouter API key tại đây (openrouter.ai/keys)
+    CFG.AI_BASE_URL = 'https://openrouter.ai/api/v1';
+    CFG.AI_MODEL    = 'deepseek/deepseek-v4-flash';
 
     // ── Form state ─────────────────────────
     let newChecklist = [];
@@ -4632,6 +4969,7 @@
    STATE
    ══════════════════════════════════════ */
     let ALL = [], HISTORY_ALL = [], filtered = [], currentView = 'team', currentUser = 'Cao Thi Minh Tri', selectedTask = null;
+    let _chatHistory = [];
     let page = 1, sortCol = 'DueDate', sortDir = 'asc';
     let filterLabel = '', filterStatus = '', filterBucket = '', searchQ = '';
     // Biến mới thêm:
@@ -7538,7 +7876,536 @@
     function closeDayModal() {
       document.getElementById('dayModalOverlay').classList.remove('open');
     }
+
+    /* ════════════════════════════════════════════════════════════════
+       AI CHATBOT JS UTILITIES
+       ════════════════════════════════════════════════════════════════ */
+
+    /**
+     * Serialize tasks to compact format (7 fields only)
+     * Reduces token usage for AI API call
+     * @param {Array} tasks - Array of task objects
+     * @returns {Array} Compact task objects with abbreviated keys
+     */
+    function serializeTasksForAI(tasks) {
+      const now = new Date();
+      const daysToMon = now.getDay() === 0 ? 6 : now.getDay() - 1;
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - daysToMon);
+      weekStart.setHours(0, 0, 0, 0);
+
+      return tasks
+        .filter(t => {
+          if (t.Status !== 'Completed') return true;
+          if (!t.CompletedDate) return false;
+          return new Date(t.CompletedDate) >= weekStart;
+        })
+        .map(t => ({
+          t: t.Title || '',
+          a: t.AssignedTo || '',
+          s: t.Status || '',
+          d: t.DueDate || '',
+          p: t.Priority || '',
+          b: t.BucketName || '',
+          l: t.Labels || ''
+        }));
+    }
+
+    /**
+     * Build system prompt for AI with context about tasks and team members
+     * Includes today's date, day of week, and serialized task data
+     * @returns {String} Complete system prompt
+     */
+    function buildSystemPrompt() {
+      // Get today's date
+      const today = new Date();
+      const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+      const dayOfWeek = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'][today.getDay()];
+
+      // Get team members
+      const memberNames = (CFG.MEMBERS || [])
+        .map(m => m.name || m)
+        .join(', ') || 'Không có thành viên';
+
+      // Serialize tasks
+      const tasksJSON = JSON.stringify(serializeTasksForAI(ALL || []), null, 2);
+
+      // Build system prompt
+      const systemPrompt = `Bạn là trợ lý AI cho phòng Nhân sự SOL E&C JSC.
+Hôm nay: ${dateStr}. Ngày trong tuần: ${dayOfWeek}.
+Thành viên phòng: ${memberNames}.
+
+Nhiệm vụ: trả lời câu hỏi về công việc, deadline, workload dựa trên dữ liệu bên dưới.
+Hướng dẫn:
+- Trả lời bằng tiếng Việt, ngắn gọn, rõ ràng
+- Dùng số liệu cụ thể từ dữ liệu
+- Dùng markdown (bold, danh sách) khi phù hợp
+- Không bịa thông tin không có trong data
+- Trường d = DueDate (YYYY-MM-DD), s = Status, p = Priority, a = AssignedTo
+
+DỮ LIỆU TASK (JSON):
+${tasksJSON}`;
+
+      return systemPrompt;
+    }
+
+    /**
+     * Render markdown to HTML (lightweight, no external library)
+     * Supports: **bold**, *italic*, - lists, newlines
+     * @param {String} text - Markdown text
+     * @returns {String} HTML string
+     */
+    function renderMarkdown(text) {
+      let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+      const lines = html.split('\n');
+      const processed = [];
+      let inList = false;
+      let i = 0;
+
+      while (i < lines.length) {
+        const line = lines[i];
+        const trimmed = line.trim();
+
+        // Table: current line starts with |, next line is separator row (---|---|)
+        if (trimmed.startsWith('|') && i + 1 < lines.length && /^\s*\|[\s\-:|]+\|/.test(lines[i + 1])) {
+          if (inList) { processed.push('</ul>'); inList = false; }
+
+          const tableLines = [];
+          while (i < lines.length && lines[i].trim().startsWith('|')) {
+            tableLines.push(lines[i]);
+            i++;
+          }
+
+          const parseRow = row => row.split('|').slice(1, -1).map(c => c.trim());
+          const headers = parseRow(tableLines[0]);
+          const dataRows = tableLines.slice(2).map(parseRow);
+
+          let tbl = '<table class="ai-table"><thead><tr>';
+          headers.forEach(h => { tbl += '<th>' + h + '</th>'; });
+          tbl += '</tr></thead><tbody>';
+          dataRows.forEach(row => {
+            tbl += '<tr>';
+            row.forEach(cell => { tbl += '<td>' + cell + '</td>'; });
+            tbl += '</tr>';
+          });
+          tbl += '</tbody></table>';
+          processed.push(tbl);
+          continue;
+        }
+
+        const isListItem = trimmed.startsWith('- ');
+        if (isListItem && !inList) {
+          inList = true;
+          processed.push('<ul>');
+          processed.push('<li>' + line.replace(/^\s*-\s*/, '') + '</li>');
+        } else if (isListItem && inList) {
+          processed.push('<li>' + line.replace(/^\s*-\s*/, '') + '</li>');
+        } else {
+          if (inList) { processed.push('</ul>'); inList = false; }
+          processed.push('<div>' + line + '</div>');
+        }
+        i++;
+      }
+
+      if (inList) processed.push('</ul>');
+
+      return processed.join('').replace(/\n/g, '<br>');
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       AI CHATBOT UI — Open/Close, Bubbles, Clear
+       ════════════════════════════════════════════════════════════════ */
+
+    /**
+     * Toggle chat panel open/close
+     * Called when floating button is clicked
+     */
+    function toggleAIChat() {
+      const panel = document.getElementById('aiChatPanel');
+      if (panel) {
+        panel.classList.toggle('open');
+        // Auto-focus input when opening
+        if (panel.classList.contains('open')) {
+          setTimeout(() => {
+            const input = document.getElementById('aiInput');
+            if (input) input.focus();
+          }, 100);
+        }
+      }
+    }
+
+    /**
+     * Close chat panel
+     * Called when close button (✕) is clicked
+     */
+    function closeAIChat() {
+      const panel = document.getElementById('aiChatPanel');
+      if (panel) {
+        panel.classList.remove('open');
+      }
+    }
+
+    /**
+     * Append user message bubble to chat
+     * @param {String} text - User message text
+     */
+    function appendUserBubble(text) {
+      const messagesDiv = document.getElementById('aiChatPanel');
+      if (!messagesDiv) return;
+
+      const msgContainer = messagesDiv.querySelector('.ai-messages');
+      if (!msgContainer) return;
+
+      // Remove empty state on first message
+      const emptyState = msgContainer.querySelector('.ai-empty-state');
+      if (emptyState) emptyState.remove();
+
+      const bubble = document.createElement('div');
+      bubble.className = 'ai-msg ai-msg-user';
+      bubble.textContent = text;
+
+      msgContainer.appendChild(bubble);
+
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+      }, 50);
+    }
+
+    /**
+     * Append empty bot bubble to chat, return reference for updating
+     * @returns {HTMLElement} Reference to the bot bubble div for content updates
+     */
+    function appendBotBubble() {
+      const messagesDiv = document.getElementById('aiChatPanel');
+      if (!messagesDiv) return null;
+
+      const msgContainer = messagesDiv.querySelector('.ai-messages');
+      if (!msgContainer) return null;
+
+      // Create bot bubble (empty initially)
+      const bubble = document.createElement('div');
+      bubble.className = 'ai-msg ai-msg-bot';
+      bubble.innerHTML = '';
+
+      msgContainer.appendChild(bubble);
+
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+      }, 50);
+
+      return bubble;
+    }
+
+    /**
+     * Clear chat history and UI
+     * Clears _chatHistory array and removes all message bubbles from UI
+     */
+    function clearAIHistory() {
+      // Clear in-memory history
+      _chatHistory = [];
+
+      // Clear UI messages
+      const messagesDiv = document.getElementById('aiChatPanel');
+      if (!messagesDiv) return;
+
+      const msgContainer = messagesDiv.querySelector('.ai-messages');
+      if (msgContainer) {
+        msgContainer.innerHTML = `<div class="ai-empty-state" id="aiEmptyState">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <div>Hỏi bất cứ điều gì về<br>công việc của phòng HR</div>
+          <div style="font-size:0.7rem;color:var(--text-3);margin-top:4px">VD: "Ai có task quá hạn?", "Deadline tuần này?"</div>
+        </div>`;
+      }
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       AI CHATBOT API — Send Message with Streaming
+       ════════════════════════════════════════════════════════════════ */
+
+    /**
+     * Send user message to AI API with streaming response
+     * Adds to chat history, displays user/bot bubbles, handles real-time updates
+     * @param {String} userText - User message
+     */
+    async function sendAIMessage(userText) {
+      // Validate inputs
+      if (!userText || userText.trim() === '') return;
+      if (!CFG.AI_API_KEY || CFG.AI_API_KEY.trim() === '') {
+        appendUserBubble('Lỗi: Không tìm thấy AI_API_KEY trong CFG');
+        const botBubble = appendBotBubble();
+        botBubble.textContent = 'Vui lòng điền CFG.AI_API_KEY vào cấu hình';
+        return;
+      }
+
+      // Validate data
+      if (!ALL || ALL.length === 0) {
+        appendUserBubble(userText);
+        const botBubble = appendBotBubble();
+        botBubble.textContent = 'Chưa có dữ liệu task. Vui lòng đồng bộ dữ liệu từ SharePoint trước.';
+        return;
+      }
+
+      // Add user message to history and display
+      _chatHistory.push({ role: 'user', content: userText });
+      appendUserBubble(userText);
+
+      // Create empty bot bubble for streaming
+      const botBubble = appendBotBubble();
+      let fullText = '';
+
+      // Disable input during streaming
+      const sendBtn = document.getElementById('aiSendBtn');
+      const inputEl = document.getElementById('aiInput');
+      if (sendBtn) sendBtn.disabled = true;
+      if (inputEl) inputEl.disabled = true;
+
+      try {
+        // Prepare request body (OpenAI-compatible format for OpenRouter)
+        const requestBody = {
+          model: CFG.AI_MODEL,
+          max_tokens: 2048,
+          messages: [
+            { role: 'system', content: buildSystemPrompt() },
+            ..._chatHistory.slice(-20)
+          ],
+          stream: true
+        };
+
+        // Make API request
+        const response = await fetch(CFG.AI_BASE_URL + '/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${CFG.AI_API_KEY}`,
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'HR Task Dashboard'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        // Handle HTTP errors
+        if (!response.ok) {
+          let errorMsg = 'Lỗi: ';
+          if (response.status >= 400 && response.status < 500) {
+            if (response.status === 401) {
+              errorMsg += 'API Key không hợp lệ (401 Unauthorized)';
+            } else if (response.status === 429) {
+              errorMsg += 'Vượt quá giới hạn (429 Too Many Requests)';
+            } else {
+              errorMsg += `Lỗi client ${response.status}`;
+            }
+          } else if (response.status >= 500) {
+            errorMsg += 'Lỗi server (500+). Vui lòng thử lại sau.';
+          } else {
+            errorMsg += `HTTP ${response.status}`;
+          }
+
+          botBubble.textContent = errorMsg;
+          return;
+        }
+
+        // Parse streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+
+          // Process complete lines, keep incomplete line in buffer
+          buffer = lines[lines.length - 1];
+
+          for (let i = 0; i < lines.length - 1; i++) {
+            const line = lines[i].trim();
+
+            // Skip empty lines
+            if (!line) continue;
+
+            // Handle end-of-stream marker
+            if (line === 'data: [DONE]') {
+              reader.cancel();
+              break;
+            }
+
+            // Parse SSE format: "data: {...}"
+            if (!line.startsWith('data: ')) continue;
+
+            try {
+              const json = JSON.parse(line.slice(6));
+
+              // Extract text delta (OpenAI/OpenRouter format)
+              const delta = json.choices?.[0]?.delta?.content;
+              if (delta) {
+                fullText += delta;
+                // Update bubble with real-time rendered markdown
+                botBubble.innerHTML = renderMarkdown(fullText);
+                // Auto-scroll to keep new content visible
+                setTimeout(() => {
+                  const msgContainer = document.getElementById('aiChatPanel')?.querySelector('.ai-messages');
+                  if (msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
+                }, 0);
+              }
+            } catch (e) {
+              // Silently skip invalid JSON lines
+              continue;
+            }
+          }
+        }
+
+        // Trim history to max 20 items
+        if (_chatHistory.length > 20) {
+          _chatHistory = _chatHistory.slice(-20);
+        }
+
+        // Save AI response to history only if we got text
+        if (fullText) {
+          _chatHistory.push({ role: 'assistant', content: fullText });
+          // Trim again after adding assistant response
+          if (_chatHistory.length > 20) {
+            _chatHistory = _chatHistory.slice(-20);
+          }
+        } else {
+          // No text received - show error
+          botBubble.textContent = 'Không nhận được phản hồi từ AI. Vui lòng thử lại.';
+        }
+
+      } catch (error) {
+        // Handle network and other errors
+        console.error('AI Chat Error:', error);
+        let errorMsg = 'Lỗi: ';
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          errorMsg += 'Mất kết nối mạng. Vui lòng kiểm tra kết nối và thử lại.';
+        } else {
+          errorMsg += error.message || 'Có lỗi xảy ra. Vui lòng thử lại.';
+        }
+        botBubble.textContent = errorMsg;
+      } finally {
+        // Re-enable input after streaming completes or errors
+        if (sendBtn) sendBtn.disabled = false;
+        if (inputEl) { inputEl.disabled = false; inputEl.focus(); }
+      }
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       INITIALIZATION — Wire event handlers
+       ════════════════════════════════════════════════════════════════ */
+
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Wire floating button → toggle panel
+      const btnFloat = document.getElementById('aiBtnFloat');
+      if (btnFloat) {
+        btnFloat.addEventListener('click', toggleAIChat);
+      }
+
+      // Wire close button (✕) → close panel
+      const btnClose = document.getElementById('aiCloseBtn');
+      if (btnClose) {
+        btnClose.addEventListener('click', closeAIChat);
+      }
+
+      // Wire clear button (🗑) → clear history
+      const btnClear = document.getElementById('aiClearBtn');
+      if (btnClear) {
+        btnClear.addEventListener('click', clearAIHistory);
+      }
+
+      // Wire send button → submit message
+      const btnSend = document.getElementById('aiSendBtn');
+      if (btnSend) {
+        btnSend.addEventListener('click', function() {
+          const input = document.getElementById('aiInput');
+          if (input && input.value.trim()) {
+            sendAIMessage(input.value);
+            input.value = '';
+            input.focus();
+          }
+        });
+      }
+
+      // Wire textarea input → keyboard handlers
+      const textInput = document.getElementById('aiInput');
+      if (textInput) {
+        textInput.addEventListener('keydown', function(event) {
+          // Enter (without Shift) → send message
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            const text = this.value.trim();
+            if (text) {
+              sendAIMessage(text);
+              this.value = '';
+              this.focus();
+            }
+          }
+          // Shift+Enter → insert newline (default behavior, no preventDefault)
+        });
+
+        // Auto-expand textarea height as user types
+        textInput.addEventListener('input', function() {
+          // Reset height to calculate scrollHeight
+          this.style.height = 'auto';
+          // Set height to scrollHeight (min 36px, max 80px from CSS)
+          const newHeight = Math.min(Math.max(this.scrollHeight, 36), 80);
+          this.style.height = newHeight + 'px';
+        });
+      }
+    });
+
   </script>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       AI CHATBOT FLOATING BUTTON + PANEL
+       ════════════════════════════════════════════════════════════════ -->
+
+  <!-- Floating button -->
+  <button id="aiBtnFloat" title="Trợ lý AI">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  </button>
+
+  <!-- Chat panel -->
+  <div id="aiChatPanel">
+    <!-- Header -->
+    <div class="ai-header">
+      <span>Trợ lý AI ✦</span>
+      <button id="aiClearBtn" title="Xóa lịch sử">🗑</button>
+      <button id="aiCloseBtn" title="Đóng">✕</button>
+    </div>
+
+    <!-- Messages container -->
+    <div class="ai-messages" id="aiMessages">
+      <div class="ai-empty-state" id="aiEmptyState">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <div>Hỏi bất cứ điều gì về<br>công việc của phòng HR</div>
+        <div style="font-size:0.7rem;color:var(--text-3);margin-top:4px">VD: "Ai có task quá hạn?", "Deadline tuần này?"</div>
+      </div>
+    </div>
+
+    <!-- Input area -->
+    <div class="ai-input-area">
+      <textarea id="aiInput" placeholder="Nhập câu hỏi..." rows="1"></textarea>
+      <button id="aiSendBtn" title="Gửi">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16.6915026,12.4744748 L3.50612381,13.2599618 C3.19218622,13.2599618 3.03521743,13.4170592 3.03521743,13.5741566 L1.15159189,20.0151496 C0.8376543,20.8006365 0.99,21.89 1.77946707,22.52 C2.41,22.99 3.50612381,23.1 4.13399899,22.9429026 L21.714504,14.0454487 C22.6563168,13.5741566 23.1272231,12.6315722 22.9702544,11.6889879 L4.13399899,1.05746426 C3.34915502,0.9 2.40734225,0.9 1.77946707,1.25697544 C0.994623095,1.77788954 0.837654326,2.52456998 1.15159189,3.45723872 L3.03521743,9.89823179 C3.03521743,10.0553292 3.19218622,10.2124266 3.50612381,10.2124266 L16.6915026,11.001027 C16.6915026,11.001027 17.1624089,11.001027 17.1624089,11.5721807 C17.1624089,12.1433344 16.6915026,12.4744748 16.6915026,12.4744748 Z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
 </body>
 
 </html>
