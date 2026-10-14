@@ -1,0 +1,204 @@
+<title>Ranh giới việc với nhà cung cấp</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lexend:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: một cột đọc, mở đầu bằng tóm tắt cho lãnh đạo, sơ đồ 3 tầng, rồi từng lý do, bảng "nếu tự làm tắt", điểm vướng mắc */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#18202b; --muted:#5b6676; --line:#dfe3ea;
+  --blue:#1f5fa8; --blue-soft:#e6eef8; --red:#d42a2a; --red-soft:#fdecec;
+  --amber:#b86a00; --amber-soft:#fff3df; --green:#1d7a4c; --green-soft:#e4f4ec; --grey-soft:#eef0f4;
+  --f-display:"Lexend","Segoe UI",system-ui,sans-serif;
+  --f-body:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11151b; --panel:#1a2029; --ink:#e7ebf1; --muted:#9aa5b5; --line:#2c3440;
+  --blue:#7fb2ee; --blue-soft:#1b2a3d; --red:#ff6b6b; --red-soft:#3a1d20;
+  --amber:#f0b35a; --amber-soft:#35290f; --green:#5fcf96; --green-soft:#15302a; --grey-soft:#232a35; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11151b; --panel:#1a2029; --ink:#e7ebf1; --muted:#9aa5b5; --line:#2c3440;
+  --blue:#7fb2ee; --blue-soft:#1b2a3d; --red:#ff6b6b; --red-soft:#3a1d20;
+  --amber:#f0b35a; --amber-soft:#35290f; --green:#5fcf96; --green-soft:#15302a; --grey-soft:#232a35; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:34px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.25}
+h1{font-size:28px} h2{font-size:21px} h3{font-size:16px}
+p{margin:0}
+section{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lead{color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+.exec{border-left:5px solid var(--blue);display:flex;flex-direction:column;gap:10px}
+ul,ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--grey-soft);padding:1px 5px;border-radius:4px}
+b.r{color:var(--red)} b.g{color:var(--green)}
+
+/* sơ đồ 3 tầng */
+.stack{display:flex;flex-direction:column;gap:0;align-items:stretch}
+.layer{border-radius:10px;padding:14px 16px;display:grid;grid-template-columns:150px minmax(0,1fr) 150px;gap:14px;align-items:center;border:2px solid var(--line)}
+.layer .nm{font-family:var(--f-display);font-weight:600}
+.layer .nm small{display:block;font-family:var(--f-body);font-weight:400;font-size:12px;color:var(--muted)}
+.layer .ds{font-size:13.5px;min-width:0}
+.layer .ow{font-size:12px;font-weight:700;text-align:center;padding:4px 8px;border-radius:99px}
+.l1{background:var(--amber-soft);border-color:var(--amber)} .l1 .ow{background:var(--amber);color:#fff}
+.l2{background:var(--grey-soft);border-color:var(--ink)} .l2 .ow{background:var(--ink);color:var(--bg)}
+.l3{background:var(--green-soft);border-color:var(--green)} .l3 .ow{background:var(--green);color:#fff}
+.arrow{text-align:center;font-family:var(--f-mono);font-size:12px;color:var(--muted);padding:6px 0}
+.lock{border:2.5px dashed var(--red);border-radius:14px;padding:8px;position:relative}
+.lock::before{content:"Chỉ NCC có source để sửa tầng này";position:absolute;top:-11px;left:16px;background:var(--red);color:#fff;font-size:11px;font-weight:700;padding:1px 9px;border-radius:99px}
+
+/* thẻ lý do */
+.reasons{display:flex;flex-direction:column;gap:14px}
+.rs{display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px}
+.rs .no{font-family:var(--f-display);font-weight:700;font-size:20px;color:var(--red);width:44px;height:44px;border-radius:50%;border:2px solid var(--red);display:grid;place-items:center}
+.rs .bd{display:flex;flex-direction:column;gap:8px;min-width:0}
+.ana{background:var(--blue-soft);border-radius:8px;padding:10px 12px;font-size:14px}
+.ana b{font-family:var(--f-display);font-weight:600}
+
+.tbl-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-weight:600;font-size:13px;color:var(--muted);background:var(--grey-soft)}
+.lvl{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.hi{background:var(--red-soft);color:var(--red)} .md{background:var(--amber-soft);color:var(--amber)} .lo{background:var(--green-soft);color:var(--green)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.grid2 .panel{display:flex;flex-direction:column;gap:10px}
+@media (max-width:640px){
+  h1{font-size:23px}
+  .layer{grid-template-columns:1fr;gap:6px}
+  .layer .ow{justify-self:start}
+}
+</style>
+
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">Phân hệ Quản lý định biên · Giải trình nội bộ</span>
+  <h1>Vì sao backend, giao diện tích hợp, build và deploy vẫn phải do nhà cung cấp làm</h1>
+  <p class="lead">Công ty sở hữu máy chủ và dữ liệu, nhưng không sở hữu mã nguồn ứng dụng. Trang này giải thích ranh giới đó, các điểm vướng mắc, và điều kiện để công ty tự chủ nhiều hơn về sau.</p>
+</header>
+
+<section class="panel exec">
+  <span class="eyebrow">Tóm tắt cho lãnh đạo</span>
+  <ul>
+    <li><b>Dữ liệu là của mình, "bộ máy" là của nhà cung cấp.</b> SQL Server đặt tại công ty và IT có toàn quyền, nhưng phần mềm chạy trên đó là bản đã đóng gói. Muốn thêm chức năng thì phải sửa mã nguồn, và mã nguồn chỉ nhà cung cấp giữ.</li>
+    <li><b>Phần công ty làm được (khoảng một nửa khối lượng):</b> đặc tả, thiết kế CSDL, công thức tính bằng SQL, báo cáo, test nghiệm thu, đào tạo. Nhà cung cấp chỉ còn phải nối các phần này vào ứng dụng, nên có cơ sở để đề nghị giảm giá và rút deadline.</li>
+    <li><b>Phần không nên tự làm:</b> đăng nhập, phân quyền, luồng duyệt, màn hình trong app, cài đặt bản mới. Tự làm tắt các phần này sẽ gây lỗ hổng bảo mật dữ liệu lương, mất bảo hành, và dữ liệu không khớp giữa hai hệ thống.</li>
+    <li><b>Muốn tự chủ hơn nữa</b> thì phải đàm phán trong hợp đồng: bàn giao mã nguồn, có API mở hoặc đăng nhập một lần (SSO). Kỹ thuật hay AI không thay được các điều khoản này.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Phần mềm HRM gồm 3 tầng</h2>
+  <p>Mỗi lần người dùng bấm nút, yêu cầu đi từ trên xuống dưới qua cả 3 tầng. Người dùng không bao giờ chạm trực tiếp vào database. Mọi thứ đều đi qua tầng giữa, và tầng giữa thuộc về nhà cung cấp.</p>
+  <div class="stack">
+    <div class="layer l1">
+      <div class="nm">1. Giao diện<small>Frontend, chạy trên trình duyệt</small></div>
+      <div class="ds">Màn hình, nút bấm, bảng biểu. Mockup HTML của bạn đang mô phỏng tầng này, nhưng dữ liệu là giả và chỉ lưu trong trình duyệt của từng máy.</div>
+      <div class="ow">Mockup: bạn đã làm</div>
+    </div>
+    <div class="arrow">▼ gửi yêu cầu: "CHT Hồ Quí Đôn gửi duyệt phiếu dự án X"</div>
+    <div class="lock">
+      <div class="layer l2">
+        <div class="nm">2. Ứng dụng<small>Backend, chạy trên máy chủ</small></div>
+        <div class="ds">Kiểm tra đăng nhập, kiểm tra quyền (người này có phải CHT của dự án X không), kiểm tra dữ liệu, chuyển trạng thái phiếu, gửi email cho GDDA, ghi nhật ký, rồi mới ghi xuống database.</div>
+        <div class="ow">Source: NCC giữ</div>
+      </div>
+    </div>
+    <div class="arrow">▼ ghi dữ liệu đã kiểm tra</div>
+    <div class="layer l3">
+      <div class="nm">3. Cơ sở dữ liệu<small>SQL Server tại công ty</small></div>
+      <div class="ds">Lưu bảng nhân viên, dự án, phiếu định biên. Công ty có toàn quyền: tạo bảng, viết view, stored procedure, chạy báo cáo.</div>
+      <div class="ow">Công ty: full quyền</div>
+    </div>
+  </div>
+  <div class="ana"><b>So sánh với công trình:</b> database là kho vật tư của công ty, mình giữ chìa khóa và sắp xếp kho thoải mái. Backend là hệ thống điện, nước, thang máy, kiểm soát ra vào của tòa nhà, chạy theo bản vẽ shop drawing mà chỉ nhà thầu MEP giữ. Muốn thêm một tầng mới (phân hệ định biên) và nối vào hệ thống cũ thì cần bản vẽ gốc và đội đã thi công. Mockup HTML là bản phối cảnh 3D: nhìn đúng như thật, đủ để chốt ý đồ, nhưng chưa phải kết cấu.</div>
+</section>
+
+<section>
+  <h2>Bốn lý do cụ thể</h2>
+  <div class="reasons">
+
+    <div class="rs"><div class="no">1</div><div class="bd">
+      <h3>Backend: không có mã nguồn thì không có chỗ để viết thêm code</h3>
+      <p>Trên máy chủ chỉ có bản đã biên dịch của phần mềm (các file dạng <code>.dll</code>, <code>.jar</code> hoặc đã nén). Đây là kết quả cuối cùng, không phải bản có thể chỉnh sửa. Muốn thêm API "gửi duyệt phiếu định biên" thì phải mở mã nguồn, viết thêm, biên dịch lại. Claude Code hay bất kỳ AI nào cũng cần mã nguồn để làm việc này.</p>
+      <div class="ana"><b>Ví dụ:</b> sửa một file đã biên dịch giống như khoan đục cấu kiện bê tông đã đổ. Về lý thuyết là làm được, nhưng không ai chịu trách nhiệm kết cấu, và lần nhà cung cấp cập nhật bản mới sẽ ghi đè mất.</div>
+    </div></div>
+
+    <div class="rs"><div class="no">2</div><div class="bd">
+      <h3>Đăng nhập và phân quyền nằm trong backend, đây là lớp bảo vệ dữ liệu lương</h3>
+      <p>Phân hệ định biên chứa quỹ lương, hệ số thưởng và chi phí nhân sự, là dữ liệu nhạy cảm. Việc "ai là CHT của dự án nào, ai được xem lương dự án nào" do backend kiểm tra ở mỗi yêu cầu. Trong mockup, việc ẩn hay hiện nút chỉ là mô phỏng: người biết kỹ thuật có thể mở công cụ trình duyệt và bấm được nút đã bị ẩn. Ở bản thật, backend phải chặn được cả trường hợp đó.</p>
+      <div class="ana"><b>Ví dụ:</b> nếu công ty tự viết một trang riêng ghi thẳng vào database để "đi tắt" qua backend, trang đó sẽ không biết ai đang đăng nhập theo cơ chế của HRM. Hoặc phải tự xây hệ thống đăng nhập mới (thêm một cửa vào không có bảo vệ), hoặc để mở (ai cũng xem được lương).</div>
+    </div></div>
+
+    <div class="rs"><div class="no">3</div><div class="bd">
+      <h3>Giao diện phải nằm trong app hiện có, không phải một trang HTML đứng riêng</h3>
+      <p>Người dùng cần vào menu HRM quen thuộc, đăng nhập một lần, thấy cùng giao diện, cùng danh sách nhân viên và dự án. Muốn vậy, màn hình định biên phải được dựng lại bằng đúng công nghệ giao diện của app và gắn vào khung menu, đăng nhập, thông báo sẵn có. Tất cả đều nằm trong mã nguồn. Ngoài ra, mockup đang lấy dữ liệu từ biến cố định và lưu tạm trong trình duyệt. Mỗi chỗ như vậy phải được thay bằng lời gọi lên server.</p>
+      <div class="ana"><b>Ví dụ:</b> trong mockup, khi CHT bấm "Lưu nháp", dữ liệu nằm trong trình duyệt của riêng máy đó. GDDA ở máy khác sẽ không thấy. Bản thật phải gửi lên server, lưu vào database, rồi máy GDDA mới đọc được.</div>
+    </div></div>
+
+    <div class="rs"><div class="no">4</div><div class="bd">
+      <h3>Build và deploy: chỉ người giữ mã nguồn mới đóng gói được bản mới</h3>
+      <p><b>Build</b> là biên dịch mã nguồn thành bản chạy được. <b>Deploy</b> là cài bản đó lên máy chủ. Dù máy chủ thuộc công ty và IT có quyền quản trị, IT không có gì để build. Ngoài ra, mỗi bản phát hành phải khớp đúng phiên bản giữa code ứng dụng và cấu trúc database. Nếu lệch, ứng dụng báo lỗi hoặc ghi sai dữ liệu.</p>
+      <div class="ana"><b>Phần IT vẫn làm được ở bước này:</b> chuẩn bị máy chủ test, sao lưu database trước khi cài, chạy script tạo bảng của mình theo checklist, giám sát sau khi lên bản mới.</div>
+    </div></div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Nếu công ty cố tự làm tắt thì sao</h2>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Cách làm tắt</th><th>Hậu quả</th><th>Mức rủi ro</th></tr></thead>
+    <tbody>
+      <tr><td>Tự viết trang web riêng ghi thẳng vào database, không qua backend NCC</td><td>Bỏ qua kiểm tra quyền và kiểm tra dữ liệu. App NCC không biết dữ liệu mới, có thể hiển thị sai hoặc lỗi. Lộ dữ liệu lương nếu bảo mật kém.</td><td><span class="lvl hi">Cao</span></td></tr>
+      <tr><td>Thêm cột hoặc sửa bảng có sẵn của NCC</td><td>Lần cập nhật sau của NCC có thể ghi đè hoặc lỗi. NCC có lý do từ chối bảo hành.</td><td><span class="lvl hi">Cao</span></td></tr>
+      <tr><td>Dịch ngược (decompile) bản đã biên dịch để sửa</td><td>Thường vi phạm hợp đồng bản quyền. Mất bảo hành. Mã dịch ngược khó bảo trì.</td><td><span class="lvl hi">Cao</span></td></tr>
+      <tr><td>Tạo bảng, view, stored procedure trong schema riêng, NCC review trước</td><td>Không đụng phần của NCC. Có thể gỡ bằng script rollback.</td><td><span class="lvl lo">Thấp</span></td></tr>
+      <tr><td>Power BI đọc view bằng tài khoản chỉ đọc</td><td>Không ghi gì vào hệ thống, chỉ đọc.</td><td><span class="lvl lo">Thấp</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Các điểm vướng mắc khi phối hợp</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Kỹ thuật</h3>
+      <ul>
+        <li><b>NCC có thể không dùng stored procedure.</b> Nhiều app truy cập DB qua ORM (thư viện tự sinh câu SQL). Khi đó SQL của mình chỉ còn giá trị là tài liệu công thức kèm số liệu đối chiếu, chưa dùng thẳng được.</li>
+        <li><b>Phân quyền theo dự án.</b> Mockup gán CHT, GDDA, GDDH theo từng dự án. Nếu app hiện chỉ phân quyền theo chức danh chung thì NCC phải mở rộng cơ chế phân quyền, đây là hạng mục tốn công nhất.</li>
+        <li><b>Chuẩn đặt tên và kiểu dữ liệu.</b> Thiết kế CSDL của mình phải theo đúng quy ước của NCC, nếu không họ sẽ làm lại.</li>
+        <li><b>Môi trường test.</b> Nếu không có bản app test trỏ vào DB test, mọi kiểm thử phải làm trên hệ thống thật.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Hợp đồng và trách nhiệm</h3>
+      <ul>
+        <li><b>Ranh giới bảo hành.</b> Khi có lỗi, phải xác định được lỗi nằm ở SQL của công ty hay code của NCC. Cần ghi trong phụ lục.</li>
+        <li><b>Chi phí review.</b> NCC sẽ tính công đọc và kiểm tra phần mình làm, nên giảm giá thực tế thấp hơn tỷ lệ khối lượng.</li>
+        <li><b>Quyền sở hữu.</b> Ghi rõ phần SQL và tài liệu công ty viết thuộc về công ty.</li>
+        <li><b>Phụ thuộc NCC.</b> Nếu NCC ngừng hợp tác, công ty có dữ liệu nhưng không sửa được phần mềm. Đây là rủi ro lớn nhất về dài hạn.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Điều kiện để công ty tự chủ nhiều hơn</h2>
+  <p>Ranh giới trên do hợp đồng quyết định, không do năng lực kỹ thuật. Muốn dời ranh giới thì đàm phán một trong các điều khoản sau:</p>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Điều khoản</th><th>Công ty được gì</th><th>Khả năng NCC đồng ý</th></tr></thead>
+    <tbody>
+      <tr><td>Ký quỹ mã nguồn (source escrow): NCC gửi bản mã nguồn cho bên thứ ba hoặc công ty giữ, chỉ mở khi NCC ngừng hỗ trợ</td><td>Giảm rủi ro phụ thuộc, không đổi cách làm hằng ngày</td><td><span class="lvl md">Trung bình</span></td></tr>
+      <tr><td>Mở API và đăng nhập một lần (SSO)</td><td>Công ty tự xây công cụ riêng gắn vào HRM mà không đụng mã nguồn (phương án module vệ tinh)</td><td><span class="lvl md">Trung bình</span></td></tr>
+      <tr><td>Bàn giao mã nguồn phân hệ định biên</td><td>Tự sửa và phát triển phân hệ này về sau</td><td><span class="lvl hi">Thấp, thường kèm phí</span></td></tr>
+      <tr><td>Cho công ty viết code, NCC review và merge</td><td>Giảm chi phí mạnh, nhưng cần dev nội bộ đủ trình độ</td><td><span class="lvl hi">Thấp</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+</div>
