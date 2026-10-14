@@ -1,0 +1,440 @@
+<title>Lộ trình triển khai Định biên</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lexend:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: swimlane 3 làn (Công ty / Phối hợp / Nhà cung cấp) x 7 giai đoạn, bên dưới là bảng chi tiết + gói bàn giao + đàm phán */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#18202b; --muted:#5b6676; --line:#dfe3ea;
+  --blue:#1f5fa8; --blue-soft:#e6eef8;
+  --red:#d42a2a; --red-soft:#fdecec;
+  --amber:#b86a00; --amber-soft:#fff3df;
+  --green:#1d7a4c; --green-soft:#e4f4ec;
+  --grey-soft:#eef0f4;
+  --f-display:"Lexend","Segoe UI",system-ui,sans-serif;
+  --f-body:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11151b; --panel:#1a2029; --ink:#e7ebf1; --muted:#9aa5b5; --line:#2c3440;
+  --blue:#7fb2ee; --blue-soft:#1b2a3d; --red:#ff6b6b; --red-soft:#3a1d20;
+  --amber:#f0b35a; --amber-soft:#35290f; --green:#5fcf96; --green-soft:#15302a; --grey-soft:#232a35;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11151b; --panel:#1a2029; --ink:#e7ebf1; --muted:#9aa5b5; --line:#2c3440;
+  --blue:#7fb2ee; --blue-soft:#1b2a3d; --red:#ff6b6b; --red-soft:#3a1d20;
+  --amber:#f0b35a; --amber-soft:#35290f; --green:#5fcf96; --green-soft:#15302a; --grey-soft:#232a35;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 60px}
+.wrap{max-width:1320px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.25}
+h1{font-size:28px;font-weight:700}
+h2{font-size:20px;font-weight:600}
+h3{font-size:15px;font-weight:600}
+p{margin:0}
+.eyebrow{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lead{color:var(--muted);max-width:75ch}
+section{display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+
+/* header context */
+.ctx{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.ctx .panel{display:flex;flex-direction:column;gap:6px;padding:14px 16px}
+.ctx b{font-family:var(--f-display);font-weight:600}
+.ctx .panel p{color:var(--muted);font-size:13.5px}
+
+/* legend + toolbar */
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.lg{display:flex;align-items:center;gap:8px;font-size:13px}
+.sw{width:22px;height:14px;border-radius:4px;border:2px solid var(--line);background:var(--panel)}
+.sw.self{border:2.5px dashed var(--red);background:var(--red-soft)}
+.sw.co{border:2px solid var(--amber);background:var(--amber-soft)}
+.sw.done{border:2px solid var(--green);background:var(--green-soft)}
+.sw.vendor{border:2px solid var(--line);background:var(--grey-soft)}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+button.tg{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+button.tg[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible,.card:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+/* swimlane */
+.lane-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.lanes{display:grid;grid-template-columns:120px repeat(7,minmax(168px,1fr));min-width:1330px}
+.lanes > div{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px}
+.lanes > div:nth-child(8n){border-right:0}
+.ph{background:var(--grey-soft);display:flex;flex-direction:column;gap:2px}
+.ph .n{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.ph .t{font-family:var(--f-display);font-weight:600;font-size:13.5px}
+.ln{font-family:var(--f-display);font-weight:600;font-size:13px;display:flex;flex-direction:column;justify-content:center;gap:4px;background:var(--grey-soft)}
+.ln small{font-family:var(--f-body);font-weight:400;color:var(--muted);font-size:11.5px}
+.cell{display:flex;flex-direction:column;gap:8px}
+.corner{background:var(--grey-soft)}
+.card{position:relative;text-align:left;font:inherit;font-size:12.8px;line-height:1.4;padding:8px 10px;border-radius:8px;cursor:pointer;
+  border:1.5px solid var(--line);background:var(--grey-soft);color:var(--ink);display:flex;flex-direction:column;gap:4px;width:100%}
+.card .id{font-family:var(--f-mono);font-size:10.5px;color:var(--muted)}
+.card.self{border:2.5px dashed var(--red);background:var(--red-soft);border-radius:18px;padding:9px 12px}
+.card.co{border-color:var(--amber);background:var(--amber-soft)}
+.card.done{border-color:var(--green);background:var(--green-soft)}
+.card.self::after{content:"Bạn làm";position:absolute;top:-9px;right:10px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;letter-spacing:.02em}
+.card.done::after{content:"Đã xong";position:absolute;top:-9px;right:10px;background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px}
+.card.co::after{content:"Bạn soạn · NCC duyệt";position:absolute;top:-9px;right:10px;background:var(--amber);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px}
+.card.off{opacity:.45}
+.card.dim{opacity:.25}
+.card.sel{box-shadow:0 0 0 3px var(--blue)}
+.lane-self{background:color-mix(in srgb,var(--red-soft) 35%,var(--panel))}
+
+/* detail */
+.detail{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+.dpanel{display:flex;flex-direction:column;gap:12px}
+.dpanel .tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:11.5px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.tag.self{border-color:var(--red);color:var(--red)} .tag.co{border-color:var(--amber);color:var(--amber)}
+.tag.done{border-color:var(--green);color:var(--green)} .tag.vendor{color:var(--muted)}
+.kv{display:grid;grid-template-columns:130px minmax(0,1fr);gap:8px 14px;font-size:13.5px}
+.kv dt{color:var(--muted);font-weight:600}
+.kv dd{margin:0;min-width:0}
+pre.prompt{margin:0;white-space:pre-wrap;font-family:var(--f-mono);font-size:12px;background:var(--grey-soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto}
+label.own{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:600;color:var(--red);cursor:pointer}
+label.own input{width:16px;height:16px;accent-color:var(--red)}
+
+/* meter */
+.meter{display:flex;flex-direction:column;gap:12px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.big{font-family:var(--f-display);font-size:40px;font-weight:700;color:var(--red);font-variant-numeric:tabular-nums;line-height:1}
+.track{height:14px;border-radius:99px;background:var(--grey-soft);overflow:hidden;display:flex}
+.track span{display:block;height:100%}
+.track .a{background:var(--green)} .track .b{background:var(--red)} .track .c{background:var(--amber)}
+.rows{display:flex;flex-direction:column;gap:4px;font-size:13px;font-variant-numeric:tabular-nums}
+.rows div{display:flex;justify-content:space-between;gap:10px}
+.rows i{font-style:normal;color:var(--muted)}
+.note{font-size:12.5px;color:var(--muted)}
+
+/* tables & lists */
+.tbl-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:720px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-weight:600;font-size:12.5px;color:var(--muted);background:var(--grey-soft)}
+td.mono{font-family:var(--f-mono);font-size:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.grid2 .panel{display:flex;flex-direction:column;gap:10px}
+ul,ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+li{min-width:0}
+code{font-family:var(--f-mono);font-size:12px;background:var(--grey-soft);padding:1px 5px;border-radius:4px}
+.warn{border-left:4px solid var(--red)}
+.ok{border-left:4px solid var(--green)}
+.callout{background:var(--blue-soft);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:13.5px}
+
+@media (max-width:900px){.detail{grid-template-columns:1fr}.meter{position:static}}
+@media (max-width:520px){h1{font-size:23px}.kv{grid-template-columns:1fr}.btns{margin-left:0}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">Phân hệ Quản lý định biên nhân sự · HRM</span>
+  <h1>Lộ trình từ mockup HTML đến chức năng chạy thật trên HRM</h1>
+  <p class="lead">Sơ đồ toàn bộ công việc để biến file mockup <code>quan-ly-dinh-bien.html</code> thành phân hệ hoạt động trên web app hiện có (nhà cung cấp giữ source, SQL Server đặt tại máy chủ công ty). Các bước <b style="color:var(--red)">khoanh đỏ</b> là phần công ty tự làm được với IT nội bộ + Claude Code, để cắt khối lượng giao cho đối tác.</p>
+</header>
+
+<div class="ctx">
+  <div class="panel"><b>Hiện trạng</b><p>Mockup đã mô phỏng 6 vai trò (CHT, GDDA, PNS, GDDH, CCM, Admin), luồng duyệt CHT → GDDA → PNS → GDDH, lưu nháp, template dự án, hệ số lương thưởng, theo dõi thực tế/kế hoạch. Dữ liệu đang nằm ở <code>localStorage</code>.</p></div>
+  <div class="panel"><b>Lợi thế của công ty</b><p>Full quyền SQL Server + máy chủ, có IT hạ tầng. Toàn bộ tầng dữ liệu (bảng, view, stored procedure, báo cáo) làm được mà không cần source ứng dụng.</p></div>
+  <div class="panel"><b>Giới hạn</b><p>Không có source ứng dụng → backend (API, kiểm quyền, workflow) và giao diện tích hợp vẫn phải do nhà cung cấp code, build và deploy.</p></div>
+  <div class="panel"><b>Mục tiêu</b><p>Đổi từ "giao mockup" sang "giao gói kỹ thuật": đặc tả + CSDL + SQL logic + API spec + test case → NCC chỉ còn phần nối dây vào app.</p></div>
+</div>
+
+<section>
+  <div class="bar">
+    <div class="lg"><span class="sw done"></span>Đã xong</div>
+    <div class="lg"><span class="sw self"></span>Khoanh đỏ: bạn tự làm</div>
+    <div class="lg"><span class="sw co"></span>Bạn soạn, NCC duyệt/hoàn thiện</div>
+    <div class="lg"><span class="sw vendor"></span>Nhà cung cấp làm</div>
+    <div class="btns" role="group" aria-label="Lọc">
+      <button class="tg" id="f-all" aria-pressed="true">Tất cả</button>
+      <button class="tg" id="f-self" aria-pressed="false">Chỉ phần bạn làm</button>
+      <button class="tg" id="f-vendor" aria-pressed="false">Chỉ phần NCC</button>
+    </div>
+  </div>
+  <div class="lane-scroll"><div class="lanes" id="lanes"></div></div>
+  <p class="note">Bấm vào từng bước để xem đầu ra, cách làm với Claude Code và rủi ro. Kéo ngang trên điện thoại.</p>
+</section>
+
+<section class="detail">
+  <div class="panel dpanel" id="dp"></div>
+  <aside class="panel meter" aria-live="polite">
+    <span class="eyebrow">Khối lượng trong phạm vi báo giá NCC</span>
+    <div class="big" id="pct">0%</div>
+    <p class="note">phần công ty gánh (đã xong + tự làm + ½ phần soạn chung)</p>
+    <div class="track"><span class="a" id="ba"></span><span class="b" id="bb"></span><span class="c" id="bc"></span></div>
+    <div class="rows" id="rows"></div>
+    <p class="note">Điểm công sức là ước tính tương đối cho một phân hệ cỡ này, chưa phải man-day thật. Bỏ tick "Tôi nhận bước này" ở khung chi tiết để tính lại. Mức giảm giá đàm phán được thường thấp hơn tỷ lệ này vì NCC sẽ tính thêm công review và tích hợp phần bạn làm.</p>
+  </aside>
+</section>
+
+<section>
+  <h2>Gói bàn giao cho nhà cung cấp</h2>
+  <p class="lead">Thay vì gửi một file HTML, gửi một thư mục có cấu trúc dưới đây (đặt trong Git nội bộ hoặc thư mục chia sẻ có version). Mỗi mục ứng với một bước khoanh đỏ.</p>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Thư mục / file</th><th>Nội dung</th><th>Bước</th><th>NCC dùng để</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">01_mockup/quan-ly-dinh-bien.html</td><td>Mockup tương tác (giao diện, luồng, phân quyền mô phỏng)</td><td>B1.1</td><td>Dựng UI theo framework của app</td></tr>
+      <tr><td class="mono">02_dac-ta/SRS_DinhBien.docx</td><td>Use case, quy tắc nghiệp vụ, công thức tính quỹ lương/định biên, xử lý ngoại lệ</td><td>B1.2</td><td>Viết logic backend, không phải đoán từ mockup</td></tr>
+      <tr><td class="mono">02_dac-ta/MaTranPhanQuyen.xlsx</td><td>Vai trò × màn hình × thao tác × trạng thái phiếu</td><td>B1.3</td><td>Kiểm quyền server-side</td></tr>
+      <tr><td class="mono">03_csdl/01_schema.sql … 05_seed.sql</td><td>DDL schema <code>dinhbien</code>, khóa ngoại tới bảng nhân viên/dự án, index, dữ liệu danh mục</td><td>B2.1, B3.1</td><td>Map ORM/entity, không phải thiết kế lại</td></tr>
+      <tr><td class="mono">03_csdl/10_views_sp.sql</td><td>View tổng hợp, SP tính toán, SP theo dõi thực tế/kế hoạch</td><td>B3.2</td><td>Gọi trực tiếp từ API</td></tr>
+      <tr><td class="mono">04_api/openapi.yaml</td><td>Danh sách endpoint, request/response mẫu</td><td>B2.2</td><td>Khung API backend</td></tr>
+      <tr><td class="mono">05_test/UAT_TestCases.xlsx</td><td>Kịch bản nghiệm thu theo vai trò + kết quả mong đợi + SQL kiểm tra</td><td>B1.4, B4.2</td><td>Tự test trước khi giao; căn cứ nghiệm thu</td></tr>
+      <tr><td class="mono">06_mau/email/*.html, xuat/*.xlsx</td><td>Mẫu email thông báo duyệt/trả lại, mẫu xuất Excel</td><td>B3.6, B3.7</td><td>Gắn vào chức năng gửi mail/xuất file</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="grid2">
+  <div class="panel warn">
+    <h3>Nguyên tắc an toàn khi can thiệp DB</h3>
+    <ul>
+      <li>Tạo schema riêng (vd <code>dinhbien</code>). Không sửa, không thêm cột vào bảng của NCC; chỉ tham chiếu khóa ngoại hoặc đọc qua view.</li>
+      <li>Mọi script SQL nằm trong Git, đánh số chạy tuần tự, có script rollback tương ứng.</li>
+      <li>Chỉ chạy trên database bản sao (restore từ backup) cho tới khi NCC duyệt. Production chỉ chạy sau khi backup full.</li>
+      <li>Đặt quy ước tên, kiểu dữ liệu, collation theo đúng chuẩn DB hiện có (Claude Code đọc schema rồi bắt chước).</li>
+      <li>Logic duyệt và kiểm quyền vẫn phải nằm ở backend của NCC; SQL của bạn không thay được kiểm quyền phía server.</li>
+      <li>Ghi rõ trong biên bản: phần nào bạn viết, phần nào NCC bảo hành, để lỗi phát sinh không thành tranh chấp.</li>
+    </ul>
+  </div>
+  <div class="panel ok">
+    <h3>Điểm đàm phán với nhà cung cấp</h3>
+    <ul>
+      <li>Yêu cầu NCC báo giá theo WBS (từng hạng mục như bảng chi tiết) trước, sau đó trừ hạng mục công ty nhận.</li>
+      <li>Đề xuất NCC chỉ báo giá: tích hợp kiến trúc, backend/API, frontend, unit test, deploy, bảo hành. Phần đặc tả, CSDL, SQL, test UAT, đào tạo công ty tự làm.</li>
+      <li>Rút deadline: NCC không cần giai đoạn BA và thiết kế CSDL, có thể bắt đầu code ngay khi nhận gói bàn giao.</li>
+      <li>Ghi điều khoản: công ty sở hữu phần SQL tự viết; NCC review trong X ngày; lỗi do script công ty thì công ty sửa.</li>
+      <li>Xin NCC cấp môi trường test (bản sao app trỏ vào DB test) để UAT không đụng production.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="grid2">
+  <div class="panel">
+    <h3>Câu hỏi cần hỏi NCC trước khi bắt đầu</h3>
+    <ol>
+      <li>App viết bằng gì (ASP.NET / .NET Core / Java / PHP…), frontend framework nào?</li>
+      <li>Truy cập DB qua ORM (Entity Framework, Dapper…) hay stored procedure? Có chấp nhận gọi SP do công ty viết không?</li>
+      <li>Cơ chế user, vai trò, phân quyền menu đang lưu ở bảng nào? Thêm vai trò CHT/GDDA/GDDH/CCM theo dự án bằng cách nào?</li>
+      <li>Có module workflow duyệt và gửi mail dùng chung không, hay viết riêng cho phân hệ này?</li>
+      <li>Có môi trường test/staging riêng không? Quy trình deploy và ai giữ quyền deploy?</li>
+      <li>App có API công khai hoặc SSO để sau này công ty gắn công cụ riêng vào không?</li>
+      <li>Quy ước đặt tên bảng/cột, kiểu khóa chính (int identity hay GUID), có dùng soft-delete, audit log không?</li>
+    </ol>
+  </div>
+  <div class="panel">
+    <h3>Phương án B: module vệ tinh (mức tự chủ cao hơn)</h3>
+    <p>Công ty tự xây một web app riêng cho định biên trên máy chủ của mình, đọc/ghi cùng SQL Server, NCC chỉ thêm một menu dẫn link và cấp SSO.</p>
+    <ul>
+      <li><b>Được:</b> tự chủ gần như hoàn toàn, sửa đổi không phụ thuộc NCC.</li>
+      <li><b>Mất:</b> phải tự lo bảo mật, đăng nhập, sao lưu, vận hành lâu dài; IT hạ tầng chưa có dev thì rủi ro cao.</li>
+      <li><b>Khi nào nên:</b> sau khi làm xong phương án A, đội đã quen làm SQL và có thêm ít nhất 1 dev nội bộ.</li>
+    </ul>
+    <p class="note">Sơ đồ phía trên là phương án A (tích hợp vào app của NCC), phù hợp nguồn lực hiện tại.</p>
+  </div>
+</section>
+
+<div class="callout">Thứ tự nên làm ngay: <b>B0.1</b> khảo sát schema → <b>B0.3</b> chốt mô hình hợp tác + xin báo giá WBS → <b>B1.2–B1.4</b> đặc tả và test case từ mockup → <b>B2.1</b> thiết kế CSDL gửi NCC review. Bốn việc này không cần source, làm song song với lúc NCC đọc mockup.</div>
+
+</div>
+
+<script>
+// Danh sách giai đoạn
+const PH=[
+ {n:"B0",t:"Khảo sát & thỏa thuận"},
+ {n:"B1",t:"Phân tích nghiệp vụ"},
+ {n:"B2",t:"Thiết kế kỹ thuật"},
+ {n:"B3",t:"Xây dựng"},
+ {n:"B4",t:"Kiểm thử"},
+ {n:"B5",t:"Triển khai"},
+ {n:"B6",t:"Vận hành"}];
+// Làn: self/done => Công ty, co => Phối hợp, vendor => NCC
+const LANES=[
+ {k:"cty",t:"Công ty",s:"Bạn + IT nội bộ + Claude Code"},
+ {k:"co",t:"Phối hợp",s:"Bạn soạn, NCC duyệt"},
+ {k:"ncc",t:"Nhà cung cấp",s:"Giữ source ứng dụng"}];
+// s: done|self|co|vendor ; w: điểm công sức tương đối ; q: có nằm trong báo giá NCC thông thường không
+const S=[
+ {id:"B0.1",p:0,s:"self",w:3,q:false,t:"Khảo sát schema SQL Server hiện có",
+  out:"File mô tả bảng nhân viên, dự án, phòng ban, chức danh, user/role; sơ đồ ERD phần liên quan.",
+  how:"IT cấp tài khoản đọc. Xuất danh sách bảng/cột bằng truy vấn INFORMATION_SCHEMA, đưa cho Claude Code tóm tắt và vẽ ERD.",
+  prompt:"Đây là kết quả truy vấn INFORMATION_SCHEMA.COLUMNS và các khóa ngoại của DB HRM. Hãy xác định các bảng nhân viên, dự án, phòng ban, chức danh, người dùng, vai trò; vẽ ERD mermaid và ghi quy ước đặt tên, kiểu khóa chính đang dùng.",
+  risk:"Chỉ đọc, chạy trên bản sao DB. Không tự suy đoán ý nghĩa bảng, xác nhận lại với NCC."},
+ {id:"B0.2",p:0,s:"co",w:1,q:true,t:"Xác định stack, cơ chế phân quyền & menu của app",
+  out:"Biên bản trả lời 7 câu hỏi kỹ thuật (mục bên dưới).",
+  how:"Gửi bộ câu hỏi cho NCC, ghi lại câu trả lời. Đây là đầu vào để mọi bước sau khớp với app.",
+  prompt:"",
+  risk:"Thiếu bước này thì SQL/đặc tả của bạn dễ lệch chuẩn của NCC, họ phải làm lại."},
+ {id:"B0.3",p:0,s:"co",w:1,q:false,t:"Thỏa thuận mô hình hợp tác, báo giá theo WBS",
+  out:"Phụ lục hợp đồng: bảng RACI, hạng mục công ty nhận, điều khoản review/bảo hành, deadline mới.",
+  how:"Dùng bảng chi tiết trên trang này làm WBS. Yêu cầu NCC báo giá từng dòng.",
+  prompt:"",
+  risk:"Không chốt ranh giới bảo hành thì lỗi phát sinh sẽ bị đẩy qua lại."},
+
+ {id:"B1.1",p:1,s:"done",w:8,q:true,t:"Mockup HTML tương tác: giao diện, luồng, phân quyền mô phỏng",
+  out:"quan-ly-dinh-bien.html (đã có).",
+  how:"Đã hoàn thành. Thay phần thiết kế UI/UX và phần lớn phân tích luồng mà NCC thường tính phí.",
+  prompt:"",
+  risk:"Chốt phiên bản (đặt số version, ngày) trước khi gửi để tránh thay đổi yêu cầu giữa chừng."},
+ {id:"B1.2",p:1,s:"self",w:6,q:true,t:"Đặc tả nghiệp vụ (SRS): use case, quy tắc, công thức",
+  out:"SRS_DinhBien.docx: mỗi màn hình có mục đích, trường dữ liệu, ràng buộc, công thức tính (quỹ lương, hệ số thưởng, chi phí NS/doanh thu), xử lý ngoại lệ.",
+  how:"Claude Code đọc toàn bộ JavaScript trong mockup, trích xuất quy tắc nghiệp vụ thành văn bản. Bạn rà lại và bổ sung phần mockup chưa thể hiện.",
+  prompt:"Đọc file quan-ly-dinh-bien.html. Trích xuất toàn bộ quy tắc nghiệp vụ từ code JS: các trường dữ liệu, công thức tính, điều kiện cho phép sửa/gửi/duyệt/trả lại theo vai trò và trạng thái, dữ liệu đang lưu localStorage. Viết thành tài liệu SRS tiếng Việt theo từng màn hình, đánh số quy tắc BR-01, BR-02…",
+  risk:"Mockup có thể có logic đơn giản hóa cho demo; đánh dấu rõ chỗ nào là quy tắc thật, chỗ nào chỉ để mô phỏng."},
+ {id:"B1.3",p:1,s:"self",w:2,q:true,t:"Ma trận phân quyền & sơ đồ trạng thái phiếu",
+  out:"Vai trò × thao tác × trạng thái (Nháp → Chờ GDDA → Chờ PNS → Chờ GDDH → Đã duyệt / Trả lại); quy tắc CHT chỉ sửa phiếu dự án mình khi ở nháp, Admin chỉ trả lại phiếu, CCM xác nhận khai báo dự án.",
+  how:"Claude Code đọc các hàm canEdit / ROLES / approval steps trong mockup và lập bảng.",
+  prompt:"Từ object ROLES, các hàm canEdit, myActions và approval.steps trong file mockup, lập ma trận phân quyền dạng bảng (vai trò × màn hình × thao tác × trạng thái phiếu) và sơ đồ trạng thái mermaid stateDiagram.",
+  risk:"Vai trò CHT/GDDA/GDDH gắn theo từng dự án, cần NCC xác nhận app có hỗ trợ phân quyền theo dự án không."},
+ {id:"B1.4",p:1,s:"self",w:3,q:true,t:"Kịch bản nghiệm thu (test case UAT)",
+  out:"UAT_TestCases.xlsx: mỗi dòng gồm vai trò, bước thao tác, dữ liệu vào, kết quả mong đợi, câu SQL kiểm tra.",
+  how:"Sinh từ SRS + ma trận phân quyền. Đây cũng là căn cứ nghiệm thu trong hợp đồng.",
+  prompt:"Từ SRS và ma trận phân quyền, viết bộ test case UAT dạng bảng (ID, vai trò, tiền điều kiện, bước, dữ liệu, kết quả mong đợi), gồm cả case âm: vai trò không có quyền, phiếu sai trạng thái, dữ liệu vượt ngưỡng.",
+  risk:"Không có test case thì nghiệm thu dựa trên cảm nhận, dễ phát sinh tranh cãi."},
+
+ {id:"B2.1",p:2,s:"self",w:4,q:true,t:"Thiết kế CSDL: ERD + DDL schema riêng",
+  out:"Bảng phiếu định biên, chi tiết theo tháng, lịch sử duyệt, template dự án, hệ số lương thưởng, chi phí NS/doanh thu, log email; khóa ngoại tới bảng nhân viên/dự án sẵn có.",
+  how:"Claude Code đọc schema hiện có (B0.1) + các cấu trúc localStorage trong mockup, đề xuất DDL theo đúng quy ước của DB. Gửi NCC review trước khi tạo.",
+  prompt:"Dựa trên ERD hiện có và các cấu trúc dữ liệu localStorage (DRAFTS, TPLS, HS, MAIL_LOG) trong mockup, thiết kế schema [dinhbien] cho SQL Server: bảng, khóa chính, khóa ngoại tới bảng nhân viên/dự án hiện có, index, ràng buộc CHECK cho trạng thái. Theo đúng quy ước đặt tên và kiểu khóa của DB hiện tại. Xuất file 01_schema.sql và script rollback.",
+  risk:"NCC có thể muốn tự quản lý migration bằng ORM; thống nhất trước ai sở hữu script."},
+ {id:"B2.2",p:2,s:"co",w:3,q:true,t:"Đặc tả API (OpenAPI)",
+  out:"openapi.yaml: endpoint danh sách/chi tiết phiếu, lưu nháp, gửi duyệt, duyệt, trả lại, khai báo dự án, hệ số, báo cáo.",
+  how:"Claude Code suy ra từ các thao tác trong mockup. NCC chỉnh theo chuẩn API của họ.",
+  prompt:"Liệt kê mọi thao tác người dùng trong mockup cần gọi server, thiết kế API REST tương ứng dạng OpenAPI 3 với request/response mẫu bằng dữ liệu trong mockup.",
+  risk:"Là bản đề xuất; NCC có thể có chuẩn API riêng."},
+ {id:"B2.3",p:2,s:"vendor",w:3,q:true,t:"Kiến trúc tích hợp: module, đăng nhập, menu, phân quyền",
+  out:"Thiết kế tích hợp phân hệ vào app hiện có.",
+  how:"Cần source code, NCC làm.",prompt:"",risk:""},
+
+ {id:"B3.1",p:3,s:"self",w:2,q:true,t:"Script tạo bảng + dữ liệu danh mục",
+  out:"Bảng đã tạo trên DB test; seed hệ số lương thưởng, template loại dự án, tỷ lệ chi phí NS theo doanh thu.",
+  how:"IT chạy script trên DB bản sao. Dữ liệu danh mục lấy từ Excel đang dùng.",
+  prompt:"Viết script T-SQL idempotent (IF NOT EXISTS) tạo các bảng trong 01_schema.sql và nạp dữ liệu danh mục từ file Excel đính kèm; kèm script rollback.",
+  risk:"Chỉ chạy production sau khi NCC duyệt và đã backup."},
+ {id:"B3.2",p:3,s:"self",w:8,q:true,t:"View & stored procedure tính toán, tổng hợp, theo dõi thực tế/kế hoạch",
+  out:"vw tổng hợp định biên các dự án, SP tính quỹ lương/chi phí NS, SP so sánh thực tế (chấm công/nhân sự đang làm) với kế hoạch.",
+  how:"Phần logic nặng nhất của báo cáo. Làm và kiểm tra trực tiếp trên DB, không cần source app. NCC chỉ cần gọi SP.",
+  prompt:"Viết stored procedure T-SQL tính bảng tổng hợp định biên các dự án và bảng theo dõi thực tế/kế hoạch theo đúng công thức BR-xx trong SRS. Đối chiếu kết quả với số liệu mẫu trong mockup. Thêm comment giải thích từng bước.",
+  risk:"Hỏi NCC trước có chấp nhận logic nằm trong SP không (B0.2). Nếu họ dùng ORM thuần, phần này chuyển thành tài liệu công thức + bộ số liệu đối chiếu."},
+ {id:"B3.3",p:3,s:"self",w:3,q:true,t:"Chuyển dữ liệu định biên lịch sử từ Excel",
+  out:"Dữ liệu các kỳ trước đã nạp vào bảng mới, có báo cáo đối chiếu số dòng/tổng tiền.",
+  how:"Script Python (pandas + pyodbc) hoặc Power Query → bảng staging → INSERT.",
+  prompt:"Viết script Python chạy trên Windows đọc các file Excel định biên trong thư mục, chuẩn hóa mã dự án/mã nhân viên theo bảng hiện có, nạp vào bảng staging trên SQL Server, ghi log dòng lỗi ra file.",
+  risk:"Mã dự án/nhân viên trong Excel thường không khớp DB; cần bảng mapping."},
+ {id:"B3.4",p:3,s:"vendor",w:14,q:true,t:"Backend: API, workflow duyệt, kiểm quyền server-side, lưu nháp",
+  out:"API hoạt động trong app.",how:"Cần source code. Có gói đặc tả + DB + SP, khối lượng của NCC giảm vì chỉ còn nối dây.",prompt:"",risk:""},
+ {id:"B3.5",p:3,s:"vendor",w:10,q:true,t:"Frontend: chuyển mockup sang framework của app",
+  out:"Các màn hình định biên trong app.",how:"NCC dựng lại theo design system của app, lấy mockup làm chuẩn.",prompt:"",risk:"Nếu NCC cho biết framework, có thể nhờ Claude Code tách mockup thành component sẵn (chuyển thành bước phối hợp)."},
+ {id:"B3.6",p:3,s:"co",w:1,q:true,t:"Mẫu email thông báo gửi/duyệt/trả lại",
+  out:"Template HTML email + nội dung theo từng sự kiện.",how:"Bạn soạn template, NCC gắn vào cơ chế gửi mail của app.",
+  prompt:"Viết template email HTML (inline CSS, tương thích Outlook) cho các sự kiện: gửi duyệt, duyệt, trả lại, nhắc hạn; có placeholder {{TenDuAn}}, {{NguoiGui}}, {{LinkPhieu}}.",risk:""},
+ {id:"B3.7",p:3,s:"co",w:2,q:true,t:"Mẫu xuất Excel/PDF kế hoạch định biên",
+  out:"File mẫu .xlsx đã định dạng + SP trả dữ liệu đúng thứ tự cột.",how:"Bạn làm mẫu và SP, NCC gắn nút xuất.",prompt:"",risk:""},
+
+ {id:"B4.1",p:4,s:"vendor",w:3,q:true,t:"Unit test / integration test code",out:"",how:"NCC làm trên source.",prompt:"",risk:""},
+ {id:"B4.2",p:4,s:"self",w:2,q:false,t:"Kiểm thử dữ liệu bằng SQL, đối chiếu Excel",
+  out:"Bộ script kiểm tra: tổng định biên, quỹ lương, số dòng theo dự án so với Excel gốc.",
+  how:"Chạy sau mỗi lần NCC giao bản test, phát hiện sai số trước khi UAT.",
+  prompt:"Viết bộ câu SQL kiểm tra toàn vẹn dữ liệu phân hệ định biên: phiếu mồ côi, trạng thái sai thứ tự, tổng tiền lệch giữa bảng chi tiết và bảng tổng hợp; xuất kết quả dạng bảng PASS/FAIL.",
+  risk:""},
+ {id:"B4.3",p:4,s:"self",w:3,q:false,t:"UAT theo kịch bản trên môi trường test",
+  out:"Biên bản UAT, danh sách lỗi.",how:"Người dùng thật của từng vai trò chạy test case B1.4.",prompt:"",risk:""},
+ {id:"B4.4",p:4,s:"co",w:1,q:true,t:"Kiểm thử phân quyền theo ma trận",
+  out:"Kết quả test từng vai trò.",how:"Bạn chạy theo ma trận B1.3; NCC sửa lỗi.",prompt:"",risk:"Kiểm tra cả việc gọi API trực tiếp, không chỉ ẩn/hiện nút trên giao diện."},
+
+ {id:"B5.1",p:5,s:"self",w:2,q:false,t:"Chuẩn bị môi trường test, backup DB",
+  out:"DB test (restore từ production), lịch backup, quyền truy cập.",how:"IT hạ tầng làm.",prompt:"",risk:""},
+ {id:"B5.2",p:5,s:"vendor",w:2,q:true,t:"Build & deploy code ứng dụng",out:"",how:"NCC giữ source và quy trình build.",prompt:"",risk:""},
+ {id:"B5.3",p:5,s:"co",w:1,q:true,t:"Chạy script DB lên production",
+  out:"Schema + SP trên production.",how:"IT chạy theo checklist, NCC xác nhận đúng phiên bản trước khi deploy app.",prompt:"",risk:"Backup full ngay trước khi chạy; có script rollback."},
+ {id:"B5.4",p:5,s:"self",w:2,q:true,t:"Hướng dẫn sử dụng & đào tạo",
+  out:"HDSD theo vai trò, video ngắn.",how:"Mockup + SRS đã có, Claude Code viết HDSD theo vai trò.",
+  prompt:"Từ SRS và ma trận phân quyền, viết hướng dẫn sử dụng ngắn gọn cho từng vai trò (CHT, GDDA, PNS, GDDH, CCM), dạng các bước có đánh số.",risk:""},
+
+ {id:"B6.1",p:6,s:"vendor",w:3,q:true,t:"Bảo hành, sửa lỗi code ứng dụng",out:"",how:"NCC theo hợp đồng.",prompt:"",risk:""},
+ {id:"B6.2",p:6,s:"self",w:3,q:false,t:"Báo cáo Power BI đọc thẳng view SQL",
+  out:"Dashboard định biên, quỹ lương, thực tế/kế hoạch toàn công ty.",
+  how:"Kết nối Power BI vào view với tài khoản read-only. Hoàn toàn không phụ thuộc NCC; thêm báo cáo mới không phải đặt hàng.",
+  prompt:"",risk:"Dùng tài khoản read-only riêng cho Power BI."},
+ {id:"B6.3",p:6,s:"self",w:1,q:false,t:"Giám sát dữ liệu & cảnh báo (SQL Agent job)",
+  out:"Job hằng ngày gửi mail khi phiếu treo quá hạn, dữ liệu lệch.",how:"IT cấu hình SQL Agent + Database Mail.",prompt:"",risk:""}
+];
+const LBL={done:"Đã xong",self:"Bạn tự làm",co:"Bạn soạn · NCC duyệt",vendor:"Nhà cung cấp làm"};
+const laneOf=s=>s.s==="vendor"?"ncc":s.s==="co"?"co":"cty";
+const KEY="dbm-roadmap-off";
+let OFF=new Set();try{OFF=new Set(JSON.parse(localStorage.getItem(KEY)||"[]"))}catch(e){}
+const saveOff=()=>{try{localStorage.setItem(KEY,JSON.stringify([...OFF]))}catch(e){}};
+let sel="B3.2", filt="all";
+const $=id=>document.getElementById(id);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// Vẽ swimlane
+function drawLanes(){
+  let h='<div class="corner"></div>';
+  PH.forEach(p=>h+=`<div class="ph"><span class="n">${p.n}</span><span class="t">${p.t}</span></div>`);
+  LANES.forEach(l=>{
+    h+=`<div class="ln ${l.k==="cty"?"lane-self":""}">${l.t}<small>${l.s}</small></div>`;
+    PH.forEach((p,i)=>{
+      h+=`<div class="cell ${l.k==="cty"?"lane-self":""}">`;
+      S.filter(s=>s.p===i&&laneOf(s)===l.k).forEach(s=>{
+        const cls=[s.s];
+        if(OFF.has(s.id))cls.push("off");
+        if(filt==="self"&&s.s==="vendor")cls.push("dim");
+        if(filt==="vendor"&&s.s!=="vendor")cls.push("dim");
+        if(s.id===sel)cls.push("sel");
+        h+=`<button class="card ${cls.join(" ")}" data-id="${s.id}"><span class="id">${s.id}</span>${esc(s.t)}</button>`;
+      });
+      h+=`</div>`;
+    });
+  });
+  $("lanes").innerHTML=h;
+}
+// Khung chi tiết bước đang chọn
+function drawDetail(){
+  const s=S.find(x=>x.id===sel);
+  const own=(s.s==="self"||s.s==="co")?`<label class="own"><input type="checkbox" id="own-${s.id}" ${OFF.has(s.id)?"":"checked"}> Tôi nhận bước này</label>`:"";
+  $("dp").innerHTML=`
+   <div class="tags"><span class="tag ${s.s}">${LBL[s.s]}</span><span class="tag">${PH[s.p].n} · ${PH[s.p].t}</span>
+   <span class="tag">${s.q?"Trong báo giá NCC thông thường":"Ngoài báo giá, tăng tự chủ"}</span><span class="tag">${s.w} điểm công sức</span></div>
+   <h2>${s.id} · ${esc(s.t)}</h2>
+   <dl class="kv">
+     ${s.out?`<dt>Đầu ra</dt><dd>${esc(s.out)}</dd>`:""}
+     ${s.how?`<dt>Cách làm</dt><dd>${esc(s.how)}</dd>`:""}
+     ${s.risk?`<dt>Lưu ý</dt><dd>${esc(s.risk)}</dd>`:""}
+   </dl>
+   ${s.prompt?`<span class="eyebrow">Prompt mẫu cho Claude Code</span><pre class="prompt">${esc(s.prompt)}</pre>`:""}
+   ${own}`;
+  const cb=$("own-"+s.id);
+  if(cb)cb.addEventListener("change",()=>{cb.checked?OFF.delete(s.id):OFF.add(s.id);saveOff();drawLanes();drawMeter();});
+}
+// Tính tỷ lệ khối lượng công ty gánh trong phạm vi báo giá
+function drawMeter(){
+  const Q=S.filter(s=>s.q), tot=Q.reduce((a,s)=>a+s.w,0);
+  let d=0,me=0,co=0,v=0;
+  Q.forEach(s=>{
+    if(s.s==="done")d+=s.w;
+    else if(s.s==="self"&&!OFF.has(s.id))me+=s.w;
+    else if(s.s==="co"&&!OFF.has(s.id))co+=s.w/2;
+  });
+  v=tot-d-me-co;
+  const pc=x=>Math.round(x/tot*100);
+  $("pct").textContent=pc(d+me+co)+"%";
+  $("ba").style.width=pc(d)+"%";$("bb").style.width=pc(me)+"%";$("bc").style.width=pc(co)+"%";
+  const ext=S.filter(s=>!s.q&&s.s!=="vendor"&&!OFF.has(s.id)).length;
+  $("rows").innerHTML=`
+   <div><i>Đã xong (mockup)</i><span>${d} đ · ${pc(d)}%</span></div>
+   <div><i>Bạn tự làm</i><span>${me} đ · ${pc(me)}%</span></div>
+   <div><i>½ phần soạn chung</i><span>${co} đ · ${pc(co)}%</span></div>
+   <div><i>Còn lại cho NCC</i><span>${v} đ · ${pc(v)}%</span></div>
+   <div><i>Bước ngoài báo giá tăng tự chủ</i><span>${ext} bước</span></div>`;
+}
+$("lanes").addEventListener("click",e=>{const b=e.target.closest(".card");if(!b)return;sel=b.dataset.id;drawLanes();drawDetail();});
+["all","self","vendor"].forEach(k=>$("f-"+k).addEventListener("click",()=>{
+  filt=k;["all","self","vendor"].forEach(x=>$("f-"+x).setAttribute("aria-pressed",x===k));drawLanes();}));
+drawLanes();drawDetail();drawMeter();
+</script>
